@@ -1,0 +1,39 @@
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    env_file:
+      - path: ../.env
+        required: true
+    user: "${UID:-1000}:${GID:-1000}"
+    environment:
+      HOME: /tmp
+      HF_HOME: /tmp/huggingface
+    ports:
+      - "8020:8000"
+    volumes:
+      - ../:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: whitman
+      POSTGRES_USER: whitman
+      POSTGRES_PASSWORD: whitman
+    volumes:
+      - whitman_data:/var/lib/postgresql/data
+    ports:
+      - "5452:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U whitman -d whitman"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  whitman_data:
