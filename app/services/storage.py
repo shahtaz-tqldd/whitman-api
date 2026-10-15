@@ -53,6 +53,19 @@ class StorageService:
         )
         return "r2", self._r2_url(object_key)
 
+    async def read(self, object_key: str) -> bytes:
+        """Read back a previously stored file's contents."""
+        if not self.r2_configured:
+            return Path(settings.local_storage_dir, object_key).read_bytes()
+
+        def _fetch() -> bytes:
+            response = self.client.get_object(
+                Bucket=settings.r2_bucket_name, Key=object_key
+            )
+            return response["Body"].read()
+
+        return await asyncio.to_thread(_fetch)
+
     async def delete(self, object_key: str) -> None:
         if not self.r2_configured:
             Path(settings.local_storage_dir, object_key).unlink(missing_ok=True)

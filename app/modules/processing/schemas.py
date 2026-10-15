@@ -9,11 +9,9 @@ class ProcessingResult(ORMModel):
     id: UUID
     filename: str
     file_type: str
-    file_size: int
-    storage: str
     file_url: str
-    output: dict[str, Any]
     processed_at: datetime
+    output: dict[str, Any]
 
 
 class ProcessingHistoryPage(Page[ProcessingResult]):

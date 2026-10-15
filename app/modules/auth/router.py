@@ -4,9 +4,9 @@ from fastapi import APIRouter, HTTPException
 from sqlalchemy import select
 
 from app.core.config import settings
+from app.core.dependencies import DbSession
 from app.core.security import create_token, verify_password
 from app.db.models import User
-from app.core.dependencies import DbSession
 from app.modules.auth.schemas import LoginRequest, TokenResponse
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])

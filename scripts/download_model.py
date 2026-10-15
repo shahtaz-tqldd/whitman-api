@@ -4,7 +4,7 @@ python -m scripts.download_model
 
 from sentence_transformers import SentenceTransformer
 
-from app.modules.processing.models.embeddings import MODEL_PATH
+from whitman.embeddings import MODEL_PATH
 
 MODEL_PATH.mkdir(parents=True, exist_ok=True)
 

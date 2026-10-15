@@ -1,5 +1,6 @@
 services:
   api:
+    container_name: whitman_api
     build:
       context: ..
       dockerfile: docker/Dockerfile
@@ -20,6 +21,7 @@ services:
     restart: unless-stopped
 
   db:
+    container_name: whitman_db
     image: postgres:16-alpine
     environment:
       POSTGRES_DB: whitman

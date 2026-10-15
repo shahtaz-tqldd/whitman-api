@@ -83,37 +83,88 @@ curl -s "http://localhost:8000/api/v1/processing/history?limit=20&offset=0" \
   -H "Authorization: Bearer $ACCESS_TOKEN"
 ```
 
-The processing output groups products by category and aggregates recognized attribute columns:
+The processing output profiles the uploaded products, groups them into a category
+hierarchy, and proposes attribute/commercial/inventory fields per group:
 
 ```json
 {
   "total_products": 2,
+  "category_count": 1,
+  "subcategory_count": 0,
+  "category_source_column": "category",
   "categories": [
-    {"category": "shirts", "colors": ["blue", "red"], "sizes": ["lg", "xl"]}
-  ]
+    {
+      "name": "shirts",
+      "product_count": 2,
+      "attributes": {
+        "color": {"type": "categorical", "unit": null, "sample_values": ["blue", "red"]}
+      },
+      "commercial_fields": {},
+      "inventory_fields": {},
+      "subcategories": []
+    }
+  ],
+  "alias_suggestions": [],
+  "ml_role_discovery": {"enabled": false, "status": "disabled", "predictions": []}
 }
 ```
 
-The current transformation is a deterministic placeholder in
-`app/modules/processing/service.py` (`build_catalog`) and is the extension point for the real ML
-pipeline.
+The catalog builder lives in the reusable `whitman` package (see below); the extension
+point for the pipeline is `whitman/pipeline.py`.
 
 Import [the Postman collection](postman/Whitman API.postman_collection.json) for ready-to-run
 requests; it stores the auth token automatically after login.
 
+## Catalog engine (`whitman/`)
+
+All product-processing logic is a standalone package with **no FastAPI, database or
+settings dependencies**, so it can later be published and reused in any project:
+
+```text
+whitman/
+  parsing.py      csv/xlsx/json uploads -> normalized row dicts
+  profiler.py     column stats, inferred types and column roles
+  discovery.py    category hierarchy, field buckets, alias suggestions
+  embeddings.py   local sentence embeddings (model_cache/all-MiniLM-L6-v2)
+  pipeline.py     build_catalog(): profile + discover in one call
+  ml/             trainable column-role classifier
+    features.py   profiler output -> ML feature frame
+    dataset.py    labeled JSONL loading/validation + leakage-safe splits
+    train.py      train and persist the classifier artifact
+    evaluate.py   holdout evaluation with confidence analysis
+    predict.py    role predictions with review flags
+```
+
+Prepare the local embedding model once:
+
+```bash
+python -m scripts.download_model
+```
+
+Train the column-role classifier on labeled examples (see
+`whitman/ml/data/column_examples.jsonl` for the expected JSONL format):
+
+```bash
+python -m whitman.ml.train --dataset whitman/ml/data/column_examples.jsonl
+```
+
 ## Project layout
 
 ```text
-app/
-  core/           settings, logging, security (JWT + password hashing)
-  db/             models, base classes, async session
+app/                FastAPI application (API layer)
+  core/             settings, logging, security (JWT + password hashing)
+  db/               SQLAlchemy models, base classes, async session
+  schemas/          shared API schemas (pagination)
+  services/         R2 storage with local fallback
   modules/
-    auth/         login endpoint
-    processing/   file processing + history endpoints, catalog builder
-  schemas/        shared schemas (pagination)
-  services/       R2 storage with local fallback
-scripts/          create_user CLI
-docker/           Dockerfile, Compose file, entrypoint
+    auth/           login endpoint
+    processing/     upload/history endpoints, service, DB repository
+whitman/            reusable catalog engine (see above)
+scripts/            create_user, download_model CLIs
+docker/             Dockerfile, Compose file, entrypoint
+postman/            ready-to-run API collection
+tests/              pytest suite (API, engine, ML)
+model_cache/        local embedding model (gitignored)
 ```
 
 ## Quality checks
