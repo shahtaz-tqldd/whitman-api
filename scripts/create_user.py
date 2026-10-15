@@ -1,7 +1,7 @@
 """Create a login user for the Whitman API.
 
 Usage:
-    python -m scripts.create_user --name "Jane Doe" --username jane --email jane@example.com
+    python -m scripts.create_user --name "Shahtaz Rahman" --username admin --email shahtaz67@gmail.com --password admin123
     # password is prompted when --password is omitted
 """
 
@@ -28,7 +28,7 @@ async def create_user(name: str, username: str, email: str, password: str) -> No
         )
         if existing:
             print(f"User already exists: {existing.username} <{existing.email}>")
-            sys.exit(1)
+            return
 
         db.add(
             User(

@@ -1,3 +1,5 @@
+name: whitman
+
 services:
   api:
     container_name: whitman_api
